@@ -79,6 +79,25 @@ class SearchResult {
         return sb.toString();
     }
 
+    public String pathToCoordinates(int graphSize) {
+        if (path.isEmpty()) {
+            return "";
+        }
+
+        int cols = (int) Math.sqrt(graphSize);
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < path.size(); i++) {
+            int index = path.get(i).index;
+            int row = index / cols;
+            int col = index % cols;
+            sb.append("(").append(row).append(",").append(col).append(")");
+            if (i < path.size() - 1) {
+                sb.append(" -> ");
+            }
+        }
+        return sb.toString();
+    }
+
     @Override
     public String toString() {
         return String.format("Caminho: %s, Custo: %.2f, Nós expandidos: %d, Tempo: %.2fms",
@@ -281,8 +300,7 @@ class Dijkstra extends SearchAlgorithm {
         Arrays.fill(dist, Double.MAX_VALUE);
         dist[start.index] = 0;
 
-        PriorityQueue<Node> queue = new PriorityQueue<>((a, b)
-                -> Double.compare(dist[a.index], dist[b.index]));
+        PriorityQueue<Node> queue = new PriorityQueue<>((a, b) -> Double.compare(dist[a.index], dist[b.index]));
         queue.add(start);
 
         while (!queue.isEmpty()) {
@@ -344,8 +362,7 @@ class GreedyBestFirstSearch extends SearchAlgorithm {
         int size = graph.length;
         boolean[] visited = new boolean[size];
 
-        PriorityQueue<Node> queue = new PriorityQueue<>((a, b)
-                -> Double.compare(a.h, b.h));
+        PriorityQueue<Node> queue = new PriorityQueue<>((a, b) -> Double.compare(a.h, b.h));
 
         start.h = Heuristic.calculate(heuristicType, size, start, goal);
         queue.add(start);
@@ -410,8 +427,7 @@ class AStarSearch extends SearchAlgorithm {
         gScore[start.index] = 0;
         fScore[start.index] = Heuristic.calculate(heuristicType, size, start, goal);
 
-        PriorityQueue<Node> queue = new PriorityQueue<>((a, b)
-                -> Double.compare(fScore[a.index], fScore[b.index]));
+        PriorityQueue<Node> queue = new PriorityQueue<>((a, b) -> Double.compare(fScore[a.index], fScore[b.index]));
         queue.add(start);
 
         while (!queue.isEmpty()) {
@@ -484,7 +500,8 @@ public class Main {
             Node destination = new Node(destinationIndex);
 
             if (!isTraversable(grafo, origin.index, destination.index) && grafo[origin.index][destination.index] <= 0) {
-                System.out.println("AVISO: Não há conexão direta entre origem e destino, mas algorithms podem encontrar caminho indireto.");
+                System.out.println(
+                        "AVISO: Não há conexão direta entre origem e destino, mas algorithms podem encontrar caminho indireto.");
             }
 
             System.out.println("Origem: nó " + origin.index + " (coordenadas: " + originStr + ")");
@@ -507,8 +524,11 @@ public class Main {
 
                 SearchResult result = algorithm.findPath(grafo, origin, destination);
                 System.out.println("Resultado: " + result);
+                if (!result.path.isEmpty()) {
+                    System.out.println("Caminho em coordenadas: " + result.pathToCoordinates(grafo.length));
+                }
 
-                saveResult(inputFile, algorithm, result, originStr, destinationStr, outputFolderPath);
+                saveResult(inputFile, algorithm, result, originStr, destinationStr, outputFolderPath, grafo.length);
             }
 
             System.out.println("\nTodos os algorithms executados e resultados salvos em: " + outputFolderPath);
@@ -541,7 +561,7 @@ public class Main {
     }
 
     private static void saveResult(String inputFile, SearchAlgorithm algorithm,
-            SearchResult result, String origin, String destination, String outputFolder) {
+            SearchResult result, String origin, String destination, String outputFolder, int graphSize) {
 
         String filename = new File(inputFile).getName();
         String basename = filename.substring(0, filename.lastIndexOf('.'));
@@ -550,16 +570,19 @@ public class Main {
         String outputFile = outputFolder + basename + "." + extension;
 
         try (PrintWriter writer = new PrintWriter(new FileWriter(outputFile))) {
-            writer.println("ALGORÍTIMO: " + algorithm.getAlgorithmName());
+            writer.println("ALGORITMO: " + algorithm.getAlgorithmName());
 
             String heuristic = algorithm.getHeuristicName();
-            writer.println("HEURÍSTICA: " + (heuristic.isEmpty() ? "" : heuristic));
+            writer.println("HEURISTICA: " + (heuristic.isEmpty() ? "" : heuristic));
 
             writer.println("ORIGEM: " + origin);
             writer.println("DESTINO: " + destination);
 
             String pathStr = result.path.isEmpty() ? "" : result.pathToString();
-            writer.println("CAMINHO: " + pathStr);
+            writer.println("CAMINHO (NOS): " + pathStr);
+
+            String pathCoords = result.path.isEmpty() ? "" : result.pathToCoordinates(graphSize);
+            writer.println("CAMINHO (COORDENADAS): " + pathCoords);
 
             writer.println("CUSTO: " + (result.path.isEmpty() ? "" : String.format("%.2f", result.totalCost)));
             writer.println("NOS EXPANDIDOS: " + result.nodesExpanded);
